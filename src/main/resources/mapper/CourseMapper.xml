@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.npc.old_school.mapper.CourseMapper">
+    <select id="queryCoursesWithDetails" resultType="com.npc.old_school.entity.CourseEntity">
+        SELECT c.*, 
+               t.name as teacher_name,
+               s.site_name as service_site_name
+        FROM course c
+        LEFT JOIN teacher t ON c.teacher_id = t.id
+        LEFT JOIN service_site s ON c.service_site_id = s.id
+        <where>
+            <if test="query.name != null and query.name != ''">
+                AND c.name LIKE CONCAT('%', #{query.name}, '%')
+            </if>
+            <if test="query.serviceSiteId != null">
+                AND c.service_site_id = #{query.serviceSiteId}
+            </if>
+            <if test="query.teacherId != null">
+                AND c.teacher_id = #{query.teacherId}
+            </if>
+            <if test="query.courseType != null and query.courseType != ''">
+                AND c.course_type = #{query.courseType}
+            </if>
+            <if test="query.semester != null and query.semester != ''">
+                AND c.semester = #{query.semester}
+            </if>
+            <if test="query.isCharged != null">
+                AND c.is_charged = #{query.isCharged}
+            </if>
+            <if test="query.courseStatus != null and query.courseStatus != ''">
+                AND c.course_status = #{query.courseStatus}
+            </if>
+            AND c.is_deleted = false
+        </where>
+        ORDER BY c.created_at DESC
+    </select>
+</mapper> 

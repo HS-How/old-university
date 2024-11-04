@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.npc.old_school.mapper.ServiceSiteMapper">
+    <select id="getSiteReport" resultType="com.npc.old_school.dto.service_site.SiteReportDTO">
+        WITH course_stats AS (
+            SELECT 
+                ss.id as site_id,
+                COUNT(DISTINCT c.id) as total_courses,
+                COUNT(DISTINCT ca.id) as total_attendances,
+                FLOOR(SUM(c.total_hours * cr.enrollment_count) / 60.0) as theoretical_capacity,
+                FLOOR(SUM(CASE 
+                    WHEN ca.attendance_status = 'PRESENT' 
+                    THEN cs.hours 
+                    ELSE 0 
+                END) / 60.0) as actual_capacity
+            FROM service_site ss
+            LEFT JOIN course c ON c.service_site_id = ss.id
+            LEFT JOIN course_schedule cs ON cs.course_id = c.id
+            LEFT JOIN course_attendance ca ON ca.schedule_id = cs.id
+            LEFT JOIN (
+                SELECT course_id, COUNT(*) as enrollment_count
+                FROM course_reservation
+                GROUP BY course_id
+            ) cr ON cr.course_id = c.id
+            GROUP BY ss.id
+        )
+        SELECT 
+            ss.site_name,
+            ss.district,
+            COALESCE(cs.total_courses, 0) as total_courses,
+            COALESCE(cs.total_attendances, 0) as total_attendances,
+            COALESCE(cs.theoretical_capacity, 0) as theoretical_capacity,
+            COALESCE(cs.actual_capacity, 0) as actual_capacity
+        FROM service_site ss
+        LEFT JOIN course_stats cs ON cs.site_id = ss.id
+        WHERE ss.is_deleted = false
+    </select>
+
+    <select id="getSiteCourseReport" resultType="com.npc.old_school.dto.service_site.SiteCourseReportDTO">
+        WITH attendance_stats AS (
+            SELECT 
+                c.id as course_id,
+                cs.id as schedule_id,
+                cs.hours,
+                COUNT(DISTINCT ca.student_id) FILTER (WHERE ca.attendance_status = 'PRESENT') as attendance_count
+            FROM course c
+            JOIN course_schedule cs ON cs.course_id = c.id
+            LEFT JOIN course_attendance ca ON ca.schedule_id = cs.id
+            WHERE c.service_site_id = #{siteId}
+            AND c.is_deleted = false
+            GROUP BY c.id, cs.id, cs.hours
+        )
+        SELECT 
+            c.name as course_name,
+            t.name as teacher_name,
+            c.course_type,
+            cs.sub_course_name,
+            cs.hours as course_hours,
+            COUNT(DISTINCT ca.student_id) as enrollment_count,
+            FLOOR((cs.hours * COUNT(DISTINCT ca.student_id)) / 60.0) as theoretical_capacity,
+            FLOOR(SUM(CASE 
+                WHEN ast.attendance_count > 0 THEN ast.hours 
+                ELSE 0 
+            END) / 60.0) as actual_capacity
+        FROM course c
+        JOIN teacher t ON t.id = c.teacher_id
+        JOIN course_schedule cs ON cs.course_id = c.id
+        LEFT JOIN course_attendance ca ON ca.schedule_id = cs.id
+        LEFT JOIN attendance_stats ast ON ast.course_id = c.id AND ast.schedule_id = cs.id
+        WHERE c.service_site_id = #{siteId}
+        AND c.is_deleted = false
+        GROUP BY 
+            c.id,
+            c.name,
+            t.name,
+            c.course_type,
+            cs.sub_course_name,
+            cs.hours
+        ORDER BY c.name, cs.sub_course_name
+    </select>
+</mapper> 

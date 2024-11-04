@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.npc.old_school.mapper.RoleMapper">
+    <sql id="roleColumns">
+        id, code, name, status, sort, created_at, updated_at, is_deleted
+    </sql>
+
+    <select id="selectRolesWithQuery" resultType="com.npc.old_school.entity.RoleEntity">
+        SELECT 
+            <include refid="roleColumns"/>
+        FROM public.role
+        <where>
+            is_deleted = false
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (
+                    code ILIKE CONCAT('%', #{query.keyword}, '%')
+                    OR name ILIKE CONCAT('%', #{query.keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY sort ASC, created_at DESC
+    </select>
+
+    <select id="selectAllValidRoles" resultType="com.npc.old_school.entity.RoleEntity">
+        SELECT 
+            <include refid="roleColumns"/>
+        FROM public.role
+        WHERE is_deleted = false AND status = true
+        ORDER BY sort ASC
+    </select>
+
+    <select id="existsUserWithRole" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 
+            FROM public.user 
+            WHERE role_id = #{roleId} 
+            AND is_deleted = false
+            LIMIT 1
+        )
+    </select>
+</mapper> 

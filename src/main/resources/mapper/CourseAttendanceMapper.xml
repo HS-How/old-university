@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.npc.old_school.mapper.CourseAttendanceMapper">
+    <!-- 修改查询结果映射 -->
+    <resultMap id="attendanceWithDetailsMap" type="com.npc.old_school.entity.CourseAttendanceEntity">
+        <id property="id" column="id"/>
+        <result property="courseId" column="course_id"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="attendanceStatus" column="attendance_status"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="operatorName" column="operator_name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="isDeleted" column="is_deleted"/>
+        
+        <!-- 学生信息映射 -->
+        <association property="student" javaType="com.npc.old_school.entity.CourseReservationEntity">
+            <result property="studentName" column="student_name"/>
+            <result property="phoneNumber" column="phone_number"/>
+            <result property="idCard" column="id_card"/>
+        </association>
+    </resultMap>
+
+    <select id="queryAttendanceWithDetails" resultMap="attendanceWithDetailsMap">
+        SELECT 
+            a.*,
+            r.student_name,
+            r.phone_number,
+            r.id_card
+        FROM course_attendance a
+        LEFT JOIN course_reservation r ON a.student_id = r.id AND r.is_deleted = false
+        <where>
+            a.is_deleted = false
+            <if test="query != null">
+                <if test="query.courseId != null">
+                    AND a.course_id = #{query.courseId}
+                </if>
+                <if test="query.scheduleId != null">
+                    AND a.schedule_id = #{query.scheduleId}
+                </if>
+                <if test="query.studentName != null and query.studentName != ''">
+                    AND r.student_name LIKE CONCAT('%', #{query.studentName}, '%')
+                </if>
+                <if test="query.phoneNumber != null and query.phoneNumber != ''">
+                    AND r.phone_number = #{query.phoneNumber}
+                </if>
+                <if test="query.idCard != null and query.idCard != ''">
+                    AND r.id_card = #{query.idCard}
+                </if>
+                <if test="query.attendanceStatus != null and query.attendanceStatus != ''">
+                    AND a.attendance_status = #{query.attendanceStatus}
+                </if>
+            </if>
+        </where>
+        ORDER BY r.student_name ASC
+    </select>
+
+    <select id="queryAttendanceWithDetailsBySchedule" resultMap="attendanceWithDetailsMap">
+        SELECT 
+            a.*,
+            r.student_name,
+            r.phone_number,
+            r.id_card
+        FROM course_attendance a
+        LEFT JOIN course_reservation r ON a.student_id = r.id AND r.is_deleted = false
+        WHERE a.course_id = #{courseId}
+        AND a.schedule_id = #{scheduleId}
+        AND a.is_deleted = false
+        ORDER BY r.student_name ASC
+    </select>
+</mapper> 
