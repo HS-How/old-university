@@ -22,6 +22,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
 @Slf4j
 @RestControllerAdvice
@@ -137,6 +138,15 @@ public class GlobalExceptionHandler {
         log.error("请求方法不支持: {}", message);
         return ResponseEntity
             .status(HttpStatus.METHOD_NOT_ALLOWED)
+            .body(ResultResponse.error(message));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ResultResponse> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e) {
+        String message = String.format("不支持的Content-Type '%s'，请使用 multipart/form-data", e.getContentType());
+        log.error("媒体类型不支持: {}", message);
+        return ResponseEntity
+            .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
             .body(ResultResponse.error(message));
     }
 }

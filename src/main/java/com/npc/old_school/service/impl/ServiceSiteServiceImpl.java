@@ -96,6 +96,9 @@ public class ServiceSiteServiceImpl implements ServiceSiteService {
             wrapper.eq(ServiceSiteEntity::getAuditStatus, queryDTO.getAuditStatus());
         }
 
+        // 添加ID排序
+        wrapper.orderByAsc(ServiceSiteEntity::getId);
+
         // 分页查询
         Page<ServiceSiteEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
         return serviceSiteMapper.selectPage(page, wrapper);
@@ -127,9 +130,7 @@ public class ServiceSiteServiceImpl implements ServiceSiteService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ServiceSiteEntity updateServiceSite(Long id, ServiceSiteDTO dto, MultipartFile qrCode,
-            List<MultipartFile> newImages,
-            List<Long> deleteImageIds) throws IOException {
-
+            List<MultipartFile> newImages, List<Long> deleteImageIds) throws IOException {
         // 1. 检查站点是否存在
         ServiceSiteEntity serviceSite = serviceSiteMapper.selectById(id);
         if (serviceSite == null) {
@@ -141,23 +142,18 @@ public class ServiceSiteServiceImpl implements ServiceSiteService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "站点正在审核中，不能修改");
         }
 
-        // 3. 创建新的站点记录（保留历史版本）
-        ServiceSiteEntity newServiceSite = new ServiceSiteEntity();
-        BeanUtils.copyProperties(dto, newServiceSite);
-        newServiceSite.setId(null); // 设置为null，让数据库自动生成新ID
-        newServiceSite.setAuditStatus(ServiceSiteEntity.AuditStatus.PENDING); // 设置为待审核状态
+        // 3. 更新站点基本信息
+        BeanUtils.copyProperties(dto, serviceSite);
+        serviceSite.setAuditStatus(ServiceSiteEntity.AuditStatus.PENDING);
 
         // 4. 处理二维码
         if (qrCode != null && !qrCode.isEmpty()) {
             String qrCodePath = fileUtil.saveFile(qrCode, "qrcodes");
-            newServiceSite.setQrCodePath(qrCodePath);
-        } else {
-            // 如果没有上传新的二维码，保留原来的
-            newServiceSite.setQrCodePath(serviceSite.getQrCodePath());
+            serviceSite.setQrCodePath(qrCodePath);
         }
 
-        // 5. 保存新的站点信息
-        serviceSiteMapper.insert(newServiceSite);
+        // 5. 更新站点信息
+        serviceSiteMapper.updateById(serviceSite);
 
         // 6. 处理要删除的图片
         if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
@@ -166,21 +162,18 @@ public class ServiceSiteServiceImpl implements ServiceSiteService {
 
         // 7. 处理新增的图片
         if (newImages != null && !newImages.isEmpty()) {
-            int maxOrder = getMaxImageOrder(newServiceSite.getId());
+            int maxOrder = getMaxImageOrder(serviceSite.getId());
             for (MultipartFile image : newImages) {
-                String imagePath = fileUtil.saveFile(image, "station-images");
+                String imagePath = fileUtil.saveFile(image, "images");
                 SiteImageEntity siteImage = new SiteImageEntity();
-                siteImage.setServiceSiteId(newServiceSite.getId());
+                siteImage.setServiceSiteId(serviceSite.getId());
                 siteImage.setImagePath(imagePath);
                 siteImage.setImageOrder(++maxOrder);
                 siteImageMapper.insert(siteImage);
             }
         }
 
-        // 8. 复制未删除的原有图片到新版本
-        copyExistingImages(serviceSite.getId(), newServiceSite.getId(), deleteImageIds);
-
-        return newServiceSite;
+        return serviceSite;
     }
 
     private int getMaxImageOrder(Long stationId) {
@@ -190,23 +183,6 @@ public class ServiceSiteServiceImpl implements ServiceSiteService {
                 .last("LIMIT 1");
         SiteImageEntity lastImage = siteImageMapper.selectOne(wrapper);
         return lastImage != null ? lastImage.getImageOrder() : 0;
-    }
-
-    private void copyExistingImages(Long oldStationId, Long newStationId, List<Long> deletedImageIds) {
-        LambdaQueryWrapper<SiteImageEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SiteImageEntity::getServiceSiteId, oldStationId);
-        if (deletedImageIds != null && !deletedImageIds.isEmpty()) {
-            wrapper.notIn(SiteImageEntity::getId, deletedImageIds);
-        }
-
-        List<SiteImageEntity> existingImages = siteImageMapper.selectList(wrapper);
-        for (SiteImageEntity image : existingImages) {
-            SiteImageEntity newImage = new SiteImageEntity();
-            newImage.setServiceSiteId(newStationId);
-            newImage.setImagePath(image.getImagePath());
-            newImage.setImageOrder(image.getImageOrder());
-            siteImageMapper.insert(newImage);
-        }
     }
 
     @Override

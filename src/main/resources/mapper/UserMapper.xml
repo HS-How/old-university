@@ -63,6 +63,6 @@
                 AND u.phone ILIKE CONCAT('%', #{query.phone}, '%')
             </if>
         </where>
-        ORDER BY u.created_at DESC
+        ORDER BY u.id ASC
     </select>
 </mapper> 

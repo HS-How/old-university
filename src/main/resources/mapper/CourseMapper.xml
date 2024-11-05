@@ -3,8 +3,8 @@
 <mapper namespace="com.npc.old_school.mapper.CourseMapper">
     <select id="queryCoursesWithDetails" resultType="com.npc.old_school.entity.CourseEntity">
         SELECT c.*, 
-               t.name as teacher_name,
-               s.site_name as service_site_name
+               t.name as "teacher.name",
+               s.site_name as "serviceSite.siteName"
         FROM course c
         LEFT JOIN teacher t ON c.teacher_id = t.id
         LEFT JOIN service_site s ON c.service_site_id = s.id
@@ -32,6 +32,6 @@
             </if>
             AND c.is_deleted = false
         </where>
-        ORDER BY c.created_at DESC
+        ORDER BY c.id ASC
     </select>
 </mapper> 

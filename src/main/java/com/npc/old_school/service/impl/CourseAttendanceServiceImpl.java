@@ -3,6 +3,7 @@ package com.npc.old_school.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.npc.old_school.dto.attendance.AttendanceDTO;
 import com.npc.old_school.dto.attendance.AttendanceQueryDTO;
 import com.npc.old_school.entity.CourseAttendanceEntity;
@@ -70,9 +71,10 @@ public class CourseAttendanceServiceImpl implements CourseAttendanceService {
 
     @Override
     public IPage<CourseAttendanceEntity> queryAttendance(AttendanceQueryDTO queryDTO) {
-        return attendanceMapper.queryAttendanceWithDetails(
-                new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize()),
-                queryDTO);
+        Page<CourseAttendanceEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        // 设置按ID升序排序
+        page.addOrder(OrderItem.ascs("id"));
+        return attendanceMapper.queryAttendanceWithDetails(page, queryDTO);
     }
 
     @Override

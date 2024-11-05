@@ -93,9 +93,20 @@ public class CourseReservationServiceImpl implements CourseReservationService {
         if (StringUtils.hasText(queryDTO.getIdCard())) {
             wrapper.eq(CourseReservationEntity::getIdCard, queryDTO.getIdCard());
         }
+
+        // 添加ID排序
+        wrapper.orderByAsc(CourseReservationEntity::getId);
         
         Page<CourseReservationEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
-        return reservationMapper.selectPage(page, wrapper);
+        IPage<CourseReservationEntity> resultPage = reservationMapper.selectPage(page, wrapper);
+        
+        // 加载关联的课程信息
+        resultPage.getRecords().forEach(reservation -> {
+            CourseEntity course = courseMapper.selectById(reservation.getCourseId());
+            reservation.setCourse(course);
+        });
+        
+        return resultPage;
     }
 
     @Override

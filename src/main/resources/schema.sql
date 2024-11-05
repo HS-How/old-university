@@ -175,5 +175,18 @@ CREATE TABLE IF NOT EXISTS public.user (
     FOREIGN KEY (role_id) REFERENCES public.role(id)
 );
 
+CREATE TABLE IF NOT EXISTS public.favorite (
+    id BIGSERIAL PRIMARY KEY,
+    user_name VARCHAR(50) NOT NULL,
+    target_id BIGINT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_favorite_user_name ON public.favorite(user_name);
+CREATE INDEX IF NOT EXISTS idx_favorite_target_id ON public.favorite(target_id);
+
 
 

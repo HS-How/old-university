@@ -153,7 +153,17 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public IPage<CourseEntity> queryCourses(CourseQueryDTO queryDTO) {
         Page<CourseEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
-        return courseMapper.queryCoursesWithDetails(page, queryDTO);
+        IPage<CourseEntity> coursePage = courseMapper.queryCoursesWithDetails(page, queryDTO);
+        
+        // 填充教师和服务站点信息
+        coursePage.getRecords().forEach(course -> {
+            TeacherEntity teacher = teacherMapper.selectById(course.getTeacherId());
+            ServiceSiteEntity site = serviceSiteMapper.selectById(course.getServiceSiteId());
+            course.setTeacher(teacher);
+            course.setServiceSite(site);
+        });
+        
+        return coursePage;
     }
 
     @Override
