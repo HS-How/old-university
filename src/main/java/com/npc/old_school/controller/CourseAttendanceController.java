@@ -4,6 +4,7 @@ import com.alibaba.excel.EasyExcel;
 import com.npc.old_school.dto.attendance.AttendanceDTO;
 import com.npc.old_school.dto.attendance.AttendanceExportDTO;
 import com.npc.old_school.dto.attendance.AttendanceQueryDTO;
+import com.npc.old_school.dto.attendance.ScheduleAttendanceQueryDTO;
 import com.npc.old_school.entity.CourseAttendanceEntity;
 import com.npc.old_school.exception.ResultResponse;
 import com.npc.old_school.service.CourseAttendanceService;
@@ -67,5 +68,10 @@ public class CourseAttendanceController {
         EasyExcel.write(response.getOutputStream(), AttendanceExportDTO.class)
                 .sheet("签到表")
                 .doWrite(exportList);
+    }
+
+    @GetMapping("/schedule")
+    public ResultResponse getScheduleAttendance(@Valid ScheduleAttendanceQueryDTO queryDTO) {
+        return ResultResponse.success(attendanceService.getScheduleAttendance(queryDTO));
     }
 } 

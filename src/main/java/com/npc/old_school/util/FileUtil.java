@@ -7,11 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.npc.old_school.exception.ExceptionEnum;
-
+import com.npc.old_school.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -54,21 +54,26 @@ public class FileUtil {
     }
 
     private void validateFile(MultipartFile file) {
+        // 检查文件是否为空
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "文件不能为空");
+        }
+
         // 检查文件大小
         if (file.getSize() > maxSize) {
-            throw new RuntimeException(ExceptionEnum.BAD_REQUEST.getResultMessage() + ": 文件大小超过限制");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "文件大小超过限制");
         }
 
         // 检查文件类型
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new RuntimeException(ExceptionEnum.BAD_REQUEST.getResultMessage() + ": 只允许上传图片文件");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "只允许上传图片文件");
         }
 
         // 检查文件扩展名
         String extension = getFileExtension(file.getOriginalFilename());
         if (!Arrays.asList(".jpg", ".jpeg", ".png").contains(extension.toLowerCase())) {
-            throw new RuntimeException(ExceptionEnum.BAD_REQUEST.getResultMessage() + ": 不支持的文件类型");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "不支持的文件类型");
         }
     }
 

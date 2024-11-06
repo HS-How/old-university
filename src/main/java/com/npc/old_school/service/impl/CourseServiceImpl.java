@@ -154,7 +154,7 @@ public class CourseServiceImpl implements CourseService {
     public IPage<CourseEntity> queryCourses(CourseQueryDTO queryDTO) {
         Page<CourseEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
         IPage<CourseEntity> coursePage = courseMapper.queryCoursesWithDetails(page, queryDTO);
-        
+
         // 填充教师和服务站点信息
         coursePage.getRecords().forEach(course -> {
             TeacherEntity teacher = teacherMapper.selectById(course.getTeacherId());
@@ -162,7 +162,7 @@ public class CourseServiceImpl implements CourseService {
             course.setTeacher(teacher);
             course.setServiceSite(site);
         });
-        
+
         return coursePage;
     }
 
@@ -178,6 +178,14 @@ public class CourseServiceImpl implements CourseService {
         wrapper.eq(CourseScheduleEntity::getCourseId, id);
         List<CourseScheduleEntity> schedules = scheduleMapper.selectList(wrapper);
         course.setSchedules(schedules);
+
+        // 获取教师信息
+        TeacherEntity teacher = teacherMapper.selectById(course.getTeacherId());
+        course.setTeacher(teacher);
+
+        // 获取服务站点信息
+        ServiceSiteEntity site = serviceSiteMapper.selectById(course.getServiceSiteId());
+        course.setServiceSite(site);
 
         return course;
     }

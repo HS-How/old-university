@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS public.role (
 
 CREATE TABLE IF NOT EXISTS public.user (
     id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL,
     password VARCHAR(100) NOT NULL,
     name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) NOT NULL,

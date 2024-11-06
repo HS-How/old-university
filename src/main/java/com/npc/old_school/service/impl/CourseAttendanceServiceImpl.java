@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.npc.old_school.dto.attendance.AttendanceDTO;
 import com.npc.old_school.dto.attendance.AttendanceQueryDTO;
+import com.npc.old_school.dto.attendance.ScheduleAttendanceDTO;
+import com.npc.old_school.dto.attendance.ScheduleAttendanceQueryDTO;
 import com.npc.old_school.entity.CourseAttendanceEntity;
 import com.npc.old_school.entity.CourseAttendanceEntity.AttendanceStatus;
 import com.npc.old_school.entity.CourseReservationEntity;
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +84,55 @@ public class CourseAttendanceServiceImpl implements CourseAttendanceService {
     @Override
     public List<CourseAttendanceEntity> exportAttendance(Long courseId, Long scheduleId) {
         return attendanceMapper.queryAttendanceWithDetailsBySchedule(courseId, scheduleId);
+    }
+
+    @Override
+    public IPage<ScheduleAttendanceDTO> getScheduleAttendance(ScheduleAttendanceQueryDTO queryDTO) {
+        // 1. 创建分页对象
+        Page<CourseReservationEntity> page = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
+        
+        // 2. 获取该课程的所有预约学员（分页）
+        LambdaQueryWrapper<CourseReservationEntity> reservationWrapper = new LambdaQueryWrapper<>();
+        reservationWrapper.eq(CourseReservationEntity::getCourseId, queryDTO.getCourseId());
+        Page<CourseReservationEntity> reservationPage = courseReservationMapper.selectPage(page, reservationWrapper);
+
+        // 3. 获取当前页学生的签到记录
+        List<Long> currentPageStudentIds = reservationPage.getRecords().stream()
+                .map(CourseReservationEntity::getId)
+                .collect(Collectors.toList());
+        
+        LambdaQueryWrapper<CourseAttendanceEntity> attendanceWrapper = new LambdaQueryWrapper<>();
+        attendanceWrapper.eq(CourseAttendanceEntity::getCourseId, queryDTO.getCourseId())
+                .eq(CourseAttendanceEntity::getScheduleId, queryDTO.getScheduleId())
+                .in(CourseAttendanceEntity::getStudentId, currentPageStudentIds);
+        List<CourseAttendanceEntity> attendances = attendanceMapper.selectList(attendanceWrapper);
+
+        // 4. 将签到记录转换为Map
+        Map<Long, CourseAttendanceEntity> attendanceMap = attendances.stream()
+                .collect(Collectors.toMap(
+                        CourseAttendanceEntity::getStudentId,
+                        attendance -> attendance
+                ));
+
+        // 5. 构建返回结果
+        List<ScheduleAttendanceDTO> dtoList = reservationPage.getRecords().stream().map(reservation -> {
+            ScheduleAttendanceDTO dto = new ScheduleAttendanceDTO();
+            dto.setStudentId(reservation.getId());
+            dto.setStudentName(reservation.getStudentName());
+            dto.setPhoneNumber(reservation.getPhoneNumber());
+            dto.setIdCard(reservation.getIdCard());
+
+            CourseAttendanceEntity attendance = attendanceMap.get(reservation.getId());
+            dto.setAttendanceStatus(attendance != null ? attendance.getAttendanceStatus() : AttendanceStatus.ABSENT);
+
+            return dto;
+        }).collect(Collectors.toList());
+
+        // 6. 封装分页结果
+        Page<ScheduleAttendanceDTO> resultPage = new Page<>(queryDTO.getPageNum(), queryDTO.getPageSize(), reservationPage.getTotal());
+        resultPage.setRecords(dtoList);
+        
+        return resultPage;
     }
 
     private boolean hasReservation(Long courseId, Long studentId) {

@@ -51,7 +51,8 @@ public class UserServiceImpl implements UserService {
         
         // 检查用户名是否已存在
         if (userMapper.exists(new LambdaQueryWrapper<UserEntity>()
-                .eq(UserEntity::getUsername, userDTO.getUsername()))) {
+                .eq(UserEntity::getUsername, userDTO.getUsername())
+                .eq(UserEntity::getIsDeleted, false))) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "用户名已存在");
         }
         
