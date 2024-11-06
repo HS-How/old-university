@@ -48,7 +48,7 @@
                 <if test="query.idCard != null and query.idCard != ''">
                     AND r.id_card = #{query.idCard}
                 </if>
-                <if test="query.attendanceStatus != null and query.attendanceStatus != ''">
+                <if test="query.attendanceStatus != null">
                     AND a.attendance_status = #{query.attendanceStatus}
                 </if>
             </if>

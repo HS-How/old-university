@@ -1,5 +1,7 @@
 package com.npc.old_school.dto.attendance;
 
+import com.npc.old_school.entity.CourseAttendanceEntity.AttendanceStatus;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
@@ -11,7 +13,7 @@ public class AttendanceQueryDTO {
     private String studentName;
     private String phoneNumber;
     private String idCard;
-    private String attendanceStatus;
+    private AttendanceStatus attendanceStatus;
 
     @Min(value = 1)
     private Integer pageNum = 1;
